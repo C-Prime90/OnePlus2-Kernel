@@ -217,6 +217,7 @@ static int fb_notifier_callback(struct notifier_block *self, unsigned long event
 #endif
 
 unsigned int nav_switch = 1;
+unsigned int enable_keys = 1;
 
 /* -------------------------------------------------------------------- */
 /* External interface							*/
@@ -406,7 +407,17 @@ static int fpc1020_nav_switch_open(struct inode *inode, struct file *file)
 	return single_open(file, fpc1020_nav_switch_show, fpc1020);
 }
 
-
+static void write_nav_switch(fpc1020_data_t *fpc1020)
+{
+	if(fpc1020->nav.enabled != nav_switch) {
+		fpc1020_input_enable(fpc1020, nav_switch);
+		if (nav_switch) {
+			fpc1020_start_navigation(fpc1020);
+		} else {
+			fpc1020_worker_goto_idle(fpc1020);
+		}
+	}
+}
 
 static ssize_t fpc1020_nav_switch_write(struct file *file, const char __user *buffer, size_t count, loff_t *pos)
 {
@@ -423,14 +434,7 @@ static ssize_t fpc1020_nav_switch_write(struct file *file, const char __user *bu
     #endif
 	dev_err(&fpc1020->spi->dev, "nav_switch change to %d\n", nav_switch);
 
-	if(fpc1020->nav.enabled != nav_switch) {
-		fpc1020_input_enable(fpc1020, nav_switch);
-		if (nav_switch) {
-			fpc1020_start_navigation(fpc1020);
-		} else {
-			fpc1020_worker_goto_idle(fpc1020);
-		}
-	}
+	write_nav_switch(fpc1020);
 
 	return count;
 }
@@ -583,14 +587,7 @@ static ssize_t fpc1020_home_switch_store(struct device *dev, struct device_attri
 
 	dev_err(&fpc1020->spi->dev, "nav_switch change to %ld\n", nav_switch);
 
-	if(fpc1020->nav.enabled != nav_switch) {
-		fpc1020_input_enable(fpc1020, nav_switch);
-		if (nav_switch) {
-			fpc1020_start_navigation(fpc1020);
-		} else {
-			fpc1020_worker_goto_idle(fpc1020);
-		}
-	}
+	write_nav_switch(fpc1020);
 
     mutex_unlock(&mLock);
 	return count;
@@ -956,10 +953,11 @@ static int fb_notifier_callback(struct notifier_block *self, unsigned long event
 		if( *blank == FB_BLANK_UNBLANK && (event == FB_EARLY_EVENT_BLANK )) {
 			dev_err(&fpc1020->spi->dev, "%s change to home key\n", __func__);
 			fpc1020->to_power = false;
-
+			enable_keys = 1;
 		} else if( *blank == FB_BLANK_POWERDOWN && (event == FB_EVENT_BLANK )) {
 			dev_err(&fpc1020->spi->dev, "%s change to power key\n", __func__);
 			fpc1020->to_power = true;
+			enable_keys = 0;
 		}
 	}
 	return 0;
