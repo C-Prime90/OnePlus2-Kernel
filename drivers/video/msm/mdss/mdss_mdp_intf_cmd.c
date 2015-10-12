@@ -233,15 +233,18 @@ static int mdss_mdp_cmd_tearcheck_cfg(struct mdss_mdp_mixer *mixer,
 	mdss_mdp_pingpong_write(pingpong_base,
 		MDSS_MDP_REG_PP_SYNC_CONFIG_HEIGHT,
 		te ? te->sync_cfg_height : 0);
+		//(ctx->ctl->height -1));
 	mdss_mdp_pingpong_write(pingpong_base,
 		MDSS_MDP_REG_PP_VSYNC_INIT_VAL,
 		te ? te->vsync_init_val : 0);
 	mdss_mdp_pingpong_write(pingpong_base,
 		MDSS_MDP_REG_PP_RD_PTR_IRQ,
 		te ? te->rd_ptr_irq : 0);
+		//(ctx->ctl->height - ctx->ctl->height * 55 / 1000 - 1));
 	mdss_mdp_pingpong_write(pingpong_base,
 		MDSS_MDP_REG_PP_START_POS,
 		te ? te->start_pos : 0);
+		//(ctx->ctl->height - ctx->ctl->height * 55 / 1000)); /* 5% accuracy error */
 	mdss_mdp_pingpong_write(pingpong_base,
 		MDSS_MDP_REG_PP_SYNC_THRESH,
 		te ? ((te->sync_threshold_continue << 16) |
@@ -249,7 +252,6 @@ static int mdss_mdp_cmd_tearcheck_cfg(struct mdss_mdp_mixer *mixer,
 	mdss_mdp_pingpong_write(pingpong_base,
 		MDSS_MDP_REG_PP_SYNC_WRCOUNT,
 		te ? (te->start_pos + te->sync_threshold_start + 1) : 0);
-
 	return 0;
 }
 
